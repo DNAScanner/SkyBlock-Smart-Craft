@@ -44,6 +44,13 @@ const formatName = (name: string) =>
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
 		.join(" ");
 
+const shortenNumber = (number: number) => {
+	if (number >= 1_000_000_000) return (number / 1_000_000_000).toFixed(1) + "B";
+	if (number >= 1_000_000) return (number / 1_000_000).toFixed(1) + "M";
+	if (number >= 1_000) return (number / 1_000).toFixed(1) + "K";
+	return number.toFixed(1);
+};
+
 const enchantifyId = (id: string) => {
 	if (id.includes("INGOT")) return "ENCHANTED_" + id.replace("_INGOT", "");
 	else if (id.includes("ENCHANTED") && id.includes("ICE")) return "ENCHANTED_PACKED_ICE";
@@ -90,6 +97,7 @@ while (true) {
 			{
 				inputItem: baseItem,
 				inputPrice: baseBuyPrice * 160,
+				inputAmount: 160,
 				outputItem: enchantedItem,
 				outputPrice: enchantedSellPrice,
 				profit: baseToEnchantedCraftProfit,
@@ -104,6 +112,7 @@ while (true) {
 					{
 						inputItem: baseItem,
 						inputPrice: baseBuyPrice * 160 * 160,
+						inputAmount: 160 * 160,
 						outputItem: doubleEnchantedItem,
 						outputPrice: doubleEnchantedSellPrice,
 						profit: baseToDoubleEnchantedCraftProfit / 160,
@@ -113,6 +122,7 @@ while (true) {
 					{
 						inputItem: enchantedItem,
 						inputPrice: enchantedBuyPrice * 160 * 160,
+						inputAmount: 160,
 						outputItem: doubleEnchantedItem,
 						outputPrice: doubleEnchantedSellPrice,
 						profit: enchantedToDoubleEnchantedCraftProfit / 160,
@@ -141,9 +151,8 @@ while (true) {
 	console.log("Best crafts:");
 
 	for (const craftIndex in crafts) {
-		// if (+craftIndex >= 15) break;
 		const craft = crafts[craftIndex];
-		console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m${formatName(craft.inputItem)} \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m${formatName(craft.outputItem)} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m \x1b[${longestInputName + longestOutputName + longestProfit + 11}G\x1b[37mhttps://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b[0m\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${craft.profitPercentage.toFixed(1)}%\x1b[0m\n`);
+		console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m${formatName(craft.outputItem)} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m  \x1b[33m${shortenNumber(+(craft.profit * (71860 / craft.inputAmount)))} \x1b[0mper order\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${shortenNumber(currentPrices[craft.inputItem].quick_status.sellVolume)}\x1b[0m\n`);
 	}
 
 	await new Promise((resolve) => setTimeout(resolve, 1000 * 5));
