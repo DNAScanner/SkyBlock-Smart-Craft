@@ -152,7 +152,7 @@ while (true) {
 
 	for (const craftIndex in crafts) {
 		const craft = crafts[craftIndex];
-		console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m${formatName(craft.outputItem)} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m  \x1b[33m${shortenNumber(+(craft.profit * (71860 / craft.inputAmount)))} \x1b[0mper order\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${shortenNumber(currentPrices[craft.inputItem].quick_status.sellVolume)}\x1b[0m\n`);
+		console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m${formatName(craft.outputItem)} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m \x1b[${longestInputName + longestOutputName + longestProfit + 12}G\x1b[33m${shortenNumber(+(craft.profit * (71860 / craft.inputAmount)))} \x1b[0mper order\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${shortenNumber(currentPrices[craft.inputItem].quick_status.sellVolume)}\x1b[0m\n`);
 	}
 
 	await new Promise((resolve) => setTimeout(resolve, 1000 * 5));
