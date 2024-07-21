@@ -29,6 +29,18 @@ type ProductRequestResponse = {
 	products: Record<string, Product>;
 };
 
+type Craft = {
+	inputItem: string;
+	inputPrice: number;
+	inputAmount: number;
+	outputItem: string;
+	outputPrice: number;
+	profit: number;
+	profitPerOrder?: number;
+	profitPercentage: number;
+	isDoubleEnchanted: boolean;
+};
+
 console.log("\x1b[?1049hFetching resources...");
 
 for (const signal of ["SIGBREAK", "SIGINT"] as Deno.Signal[]) {
@@ -76,7 +88,7 @@ const watchlist = [
 while (true) {
 	const currentPrices = (await(await fetch("https://api.hypixel.net/skyblock/bazaar")).json() as ProductRequestResponse).products;
 
-	const crafts = [];
+	const crafts: Craft[] = [];
 
 	for (const baseItem of watchlist) {
 		const enchantedItem = currentPrices[enchantifyId(baseItem)].product_id;
@@ -93,7 +105,7 @@ while (true) {
 		const baseToDoubleEnchantedCraftProfit = doubleEnchantedSellPrice - baseBuyPrice * 160 * 160;
 		const enchantedToDoubleEnchantedCraftProfit = doubleEnchantedSellPrice - enchantedBuyPrice * 160;
 
-		const possibleCrafts = [
+		const possibleCrafts: Craft[] = [
 			{
 				inputItem: baseItem,
 				inputPrice: baseBuyPrice * 160,
@@ -133,12 +145,14 @@ while (true) {
 			);
 		}
 
+		possibleCrafts.map((craft) => (craft.profitPerOrder = craft.profit * (71860 / craft.inputAmount)));
+
 		crafts.push(...possibleCrafts);
 	}
 
 	const limit = 15;
 
-	crafts.sort((a, b) => b.profit - a.profit);
+	crafts.sort((a, b) => (b.profitPerOrder || 0) - (a.profitPerOrder || 0));
 
 	crafts.splice(limit);
 
@@ -152,7 +166,7 @@ while (true) {
 
 	for (const craftIndex in crafts) {
 		const craft = crafts[craftIndex];
-		console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m\x1b]8;;https://bazaartracker.com/product/${craft.outputItem.toLowerCase()}\x1b\\${formatName(craft.outputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m \x1b[${longestInputName + longestOutputName + longestProfit + 12}G\x1b[33m${shortenNumber(+(craft.profit * (71860 / craft.inputAmount)))} \x1b[0mper order\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${shortenNumber(currentPrices[craft.inputItem].quick_status.sellVolume)}\x1b[0m\n`);
+		console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m\x1b]8;;https://bazaartracker.com/product/${craft.outputItem.toLowerCase()}\x1b\\${formatName(craft.outputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m \x1b[${longestInputName + longestOutputName + longestProfit + 12}G\x1b[33m${shortenNumber(craft.profitPerOrder || 0)} \x1b[0mper order\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${shortenNumber(currentPrices[craft.inputItem].quick_status.sellVolume)}\x1b[0m\n`);
 	}
 
 	await new Promise((resolve) => setTimeout(resolve, 1000 * 5));
