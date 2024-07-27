@@ -35,6 +35,7 @@ type Craft = {
 	inputAmount: number;
 	outputItem: string;
 	outputPrice: number;
+	sellVolume?: number;
 	profit: number;
 	profitPerOrder?: number;
 	profitPercentage: number;
@@ -66,6 +67,10 @@ const shortenNumber = (number: number) => {
 const enchantifyId = (id: string) => {
 	if (id.includes("INGOT")) return "ENCHANTED_" + id.replace("_INGOT", "");
 	else if (id.includes("ENCHANTED") && id.includes("ICE")) return "ENCHANTED_PACKED_ICE";
+	else if (id.includes("ENCHANTED") && id.includes("BALL")) return "ENCHANTED_SLIME_BLOCK";
+	else if (id.includes("ENCHANTED") && id.includes("CREAM")) return "WHIPPED_MAGMA_CREAM";
+	else if (!id.includes("ENCHANTED") && id.includes("BLAZE_ROD")) return "ENCHANTED_BLAZE_POWDER";
+	else if (id.includes("ENCHANTED") && id.includes("POWDER")) return "ENCHANTED_BLAZE_ROD";
 	else if (id.includes("ENCHANTED") && !id.includes("BLOCK")) return id + "_BLOCK";
 	else return "ENCHANTED_" + id;
 };
@@ -83,6 +88,13 @@ const watchlist = [
 	"SAND",
 	"ICE",
 	"SNOW_BLOCK",
+	"ROTTEN_FLESH",
+	"BONE",
+	"STRING",
+	"GHAST_TEAR",
+	"SLIME_BALL",
+	"MAGMA_CREAM",
+	"BLAZE_ROD",
 ];
 
 while (true) {
@@ -95,10 +107,10 @@ while (true) {
 		const doubleEnchantedItem = currentPrices[enchantifyId(enchantedItem)]?.product_id || undefined;
 
 		const baseBuyPrice = currentPrices[baseItem].sell_summary[0].pricePerUnit;
-		const _baseSellPrice = currentPrices[baseItem].buy_summary[0].pricePerUnit;
+		const baseSellPrice = currentPrices[baseItem].buy_summary[0].pricePerUnit;
 		const enchantedBuyPrice = currentPrices[enchantedItem].buy_summary[0].pricePerUnit;
 		const enchantedSellPrice = currentPrices[enchantedItem].sell_summary[0].pricePerUnit;
-		const _doubleEnchantedBuyPrice = doubleEnchantedItem ? currentPrices[doubleEnchantedItem].buy_summary[0].pricePerUnit : 0;
+		const doubleEnchantedBuyPrice = doubleEnchantedItem ? currentPrices[doubleEnchantedItem].buy_summary[0].pricePerUnit : 0;
 		const doubleEnchantedSellPrice = doubleEnchantedItem ? currentPrices[doubleEnchantedItem].sell_summary[0].pricePerUnit : 0;
 
 		const baseToEnchantedCraftProfit = enchantedSellPrice - baseBuyPrice * 160;
@@ -108,10 +120,10 @@ while (true) {
 		const possibleCrafts: Craft[] = [
 			{
 				inputItem: baseItem,
-				inputPrice: baseBuyPrice * 160,
+				inputPrice: Math.min(baseBuyPrice, baseSellPrice) * 160,
 				inputAmount: 160,
 				outputItem: enchantedItem,
-				outputPrice: enchantedSellPrice,
+				outputPrice: Math.max(enchantedSellPrice, enchantedBuyPrice),
 				profit: baseToEnchantedCraftProfit,
 				profitPercentage: baseToEnchantedCraftProfit / (baseBuyPrice * 160),
 				isDoubleEnchanted: false,
@@ -120,30 +132,30 @@ while (true) {
 
 		if (doubleEnchantedItem) {
 			possibleCrafts.push(
-				...[
-					{
-						inputItem: baseItem,
-						inputPrice: baseBuyPrice * 160 * 160,
-						inputAmount: 160 * 160,
-						outputItem: doubleEnchantedItem,
-						outputPrice: doubleEnchantedSellPrice,
-						profit: baseToDoubleEnchantedCraftProfit / 160,
-						profitPercentage: baseToDoubleEnchantedCraftProfit / (baseBuyPrice * 160 * 160),
-						isDoubleEnchanted: true,
-					},
-					{
-						inputItem: enchantedItem,
-						inputPrice: enchantedBuyPrice * 160 * 160,
-						inputAmount: 160,
-						outputItem: doubleEnchantedItem,
-						outputPrice: doubleEnchantedSellPrice,
-						profit: enchantedToDoubleEnchantedCraftProfit / 160,
-						profitPercentage: enchantedToDoubleEnchantedCraftProfit / (enchantedBuyPrice * 160),
-						isDoubleEnchanted: true,
-					},
-				]
+				{
+					inputItem: baseItem,
+					inputPrice: Math.min(baseBuyPrice, baseSellPrice) * 160 * 160,
+					inputAmount: 160 * 160,
+					outputItem: doubleEnchantedItem,
+					outputPrice: Math.max(doubleEnchantedSellPrice, doubleEnchantedBuyPrice),
+					profit: baseToDoubleEnchantedCraftProfit / 160,
+					profitPercentage: baseToDoubleEnchantedCraftProfit / (baseBuyPrice * 160 * 160),
+					isDoubleEnchanted: true,
+				},
+				{
+					inputItem: enchantedItem,
+					inputPrice: Math.min(enchantedBuyPrice, enchantedSellPrice) * 160 * 160,
+					inputAmount: 160,
+					outputItem: doubleEnchantedItem,
+					outputPrice: Math.max(doubleEnchantedSellPrice, doubleEnchantedBuyPrice),
+					profit: enchantedToDoubleEnchantedCraftProfit / 160,
+					profitPercentage: enchantedToDoubleEnchantedCraftProfit / (enchantedBuyPrice * 160),
+					isDoubleEnchanted: true,
+				}
 			);
 		}
+
+		possibleCrafts.map((craft) => (craft.sellVolume = currentPrices[craft.inputItem].quick_status.sellVolume));
 
 		possibleCrafts.map((craft) => (craft.profitPerOrder = craft.profit * (71860 / craft.inputAmount)));
 
@@ -166,7 +178,26 @@ while (true) {
 
 	for (const craftIndex in crafts) {
 		const craft = crafts[craftIndex];
-		console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m\x1b]8;;https://bazaartracker.com/product/${craft.outputItem.toLowerCase()}\x1b\\${formatName(craft.outputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m \x1b[${longestInputName + longestOutputName + longestProfit + 12}G\x1b[33m${shortenNumber(craft.profitPerOrder || 0)} \x1b[0mper order\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${shortenNumber(currentPrices[craft.inputItem].quick_status.sellVolume)}\x1b[0m\n`);
+		// console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m\x1b]8;;https://bazaartracker.com/product/${craft.outputItem.toLowerCase()}\x1b\\${formatName(craft.outputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m \x1b[${longestInputName + longestOutputName + longestProfit + 12}G\x1b[33m${shortenNumber(craft.profitPerOrder || 0)} \x1b[0mper order\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${shortenNumber(craft.sellVolume || 0)}\x1b[0m\n`);
+
+		console.log(
+			[
+				`${+craftIndex + 1}. `, //                                                                                                                        Index
+				`\x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\`, // Input item
+				`\x1b[0m\x1b[${longestInputName + 6}G-> `, //                                                                                                     Arrow
+				`\x1b[33m\x1b]8;;https://bazaartracker.com/product/${craft.outputItem.toLowerCase()}\x1b\\${formatName(craft.outputItem)}\x1b]8;;\x1b\\`, //      Output item
+				`\x1b[0m\x1b[${longestInputName + longestOutputName + 11}G`, //                                                                                   Spacing
+				`\x1b[32m${craft.profit.toFixed(1)}`, //                                                                                                          Profit
+				`\x1b[0m\x1b[${longestInputName + longestOutputName + longestProfit + 13}G`, //                                                                   Spacing
+				`\x1b[33m${shortenNumber(craft.profitPerOrder || 0)} `, //                                                                                        Profit per order
+				`\x1b[0mper order\n`, //                                                                                                                          profit per order text + new line
+				`\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()}`, //                                                                                         Input price
+				`\x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()}`, //                                                                  Output price
+				`\x1b[0m\x1b[${longestInputName + longestOutputName + 11}G`, //                                                                                   Spacing
+				`\x1b[90m${shortenNumber(craft.sellVolume || 0)}`, //                                                                                             Sell volume
+				`\x1b[0m\n`, //                                                                                                                                   Empty line to next craft
+			].join("")
+		);
 	}
 
 	await new Promise((resolve) => setTimeout(resolve, 1000 * 5));
