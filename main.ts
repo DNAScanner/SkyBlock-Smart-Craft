@@ -1,3 +1,5 @@
+import {ForegroundColor, table, TableBuilderOptions, TableItem} from "https://dnascanner.de/functions/deno/tableBuilder.ts";
+
 type Product = {
 	product_id: string;
 	sell_summary: {
@@ -57,13 +59,6 @@ const formatName = (name: string) =>
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
 		.join(" ");
 
-const shortenNumber = (number: number) => {
-	if (number >= 1_000_000_000) return (number / 1_000_000_000).toFixed(1) + "B";
-	if (number >= 1_000_000) return (number / 1_000_000).toFixed(1) + "M";
-	if (number >= 1_000) return (number / 1_000).toFixed(1) + "K";
-	return number.toFixed(1);
-};
-
 const enchantifyId = (id: string) => {
 	if (id.includes("INGOT")) return "ENCHANTED_" + id.replace("_INGOT", "");
 	else if (id.includes("ENCHANTED") && id.includes("ICE")) return "ENCHANTED_PACKED_ICE";
@@ -98,7 +93,7 @@ const watchlist = [
 ];
 
 while (true) {
-	const currentPrices = (await(await fetch("https://api.hypixel.net/skyblock/bazaar")).json() as ProductRequestResponse).products;
+	const currentPrices = ((await (await fetch("https://api.hypixel.net/skyblock/bazaar")).json()) as ProductRequestResponse).products;
 
 	const crafts: Craft[] = [];
 
@@ -168,37 +163,71 @@ while (true) {
 
 	crafts.splice(limit);
 
-	const longestInputName = Math.max(...crafts.map((craft) => formatName(craft.inputItem).length));
-	const longestOutputName = Math.max(...crafts.map((craft) => formatName(craft.outputItem).length));
-	const longestProfit = Math.max(...crafts.map((craft) => craft.profit.toFixed(1).length));
-
 	console.clear();
 
 	console.log("Best crafts:");
 
+	const items: TableItem[][][] = [];
+
 	for (const craftIndex in crafts) {
 		const craft = crafts[craftIndex];
-		// console.log(`${+craftIndex + 1}. \x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + 6}G-> \x1b[33m\x1b]8;;https://bazaartracker.com/product/${craft.outputItem.toLowerCase()}\x1b\\${formatName(craft.outputItem)}\x1b]8;;\x1b\\ \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[32m${craft.profit.toFixed(1)}\x1b[0m \x1b[${longestInputName + longestOutputName + longestProfit + 12}G\x1b[33m${shortenNumber(craft.profitPerOrder || 0)} \x1b[0mper order\n\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()} \x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()} \x1b[0m\x1b[${longestInputName + longestOutputName + 10}G\x1b[90m${shortenNumber(craft.sellVolume || 0)}\x1b[0m\n`);
 
-		console.log(
+		const item: TableItem[][] = [
 			[
-				`${+craftIndex + 1}. `, //                                                                                                                        Index
-				`\x1b[5G\x1b[32m\x1b]8;;https://bazaartracker.com/product/${craft.inputItem.toLowerCase()}\x1b\\${formatName(craft.inputItem)}\x1b]8;;\x1b\\`, // Input item
-				`\x1b[0m\x1b[${longestInputName + 6}G-> `, //                                                                                                     Arrow
-				`\x1b[33m\x1b]8;;https://bazaartracker.com/product/${craft.outputItem.toLowerCase()}\x1b\\${formatName(craft.outputItem)}\x1b]8;;\x1b\\`, //      Output item
-				`\x1b[0m\x1b[${longestInputName + longestOutputName + 11}G`, //                                                                                   Spacing
-				`\x1b[32m${craft.profit.toFixed(1)}`, //                                                                                                          Profit
-				`\x1b[0m\x1b[${longestInputName + longestOutputName + longestProfit + 13}G`, //                                                                   Spacing
-				`\x1b[33m${shortenNumber(craft.profitPerOrder || 0)} `, //                                                                                        Profit per order
-				`\x1b[0mper order\n`, //                                                                                                                          profit per order text + new line
-				`\x1b[5G\x1b[90m${craft.inputPrice.toLocaleString()}`, //                                                                                         Input price
-				`\x1b[${longestInputName + 9}G\x1b[90m${craft.outputPrice.toLocaleString()}`, //                                                                  Output price
-				`\x1b[0m\x1b[${longestInputName + longestOutputName + 11}G`, //                                                                                   Spacing
-				`\x1b[90m${shortenNumber(craft.sellVolume || 0)}`, //                                                                                             Sell volume
-				`\x1b[0m\n`, //                                                                                                                                   Empty line to next craft
-			].join("")
-		);
+				{
+					text: formatName(craft.inputItem),
+					color: ForegroundColor.GREEN,
+					link: "https://bazaartracker.com/product/" + craft.inputItem,
+				},
+				{
+					text: "->",
+				},
+				{
+					text: formatName(craft.outputItem),
+					color: ForegroundColor.YELLOW,
+					link: "https://bazaartracker.com/product/" + craft.outputItem,
+				},
+				{
+					text: craft.profit,
+					color: ForegroundColor.GREEN,
+				},
+				{
+					text: craft.profitPerOrder || 0,
+					color: ForegroundColor.YELLOW,
+				},
+				{
+					text: "per order",
+				},
+			],
+			[
+				{
+					text: craft.inputPrice,
+					color: ForegroundColor.GRAY,
+				},
+				{
+					text: "",
+				},
+				{
+					text: craft.outputPrice,
+					color: ForegroundColor.GRAY,
+				},
+				{
+					text: craft.sellVolume || 0,
+					color: ForegroundColor.GRAY,
+				},
+			],
+		];
+
+		items.push(item);
 	}
+
+	const tableOptions: TableBuilderOptions = {
+		gap: 1,
+		showIndex: true,
+		items,
+	};
+
+	console.log(table(tableOptions));
 
 	await new Promise((resolve) => setTimeout(resolve, 1000 * 5));
 }

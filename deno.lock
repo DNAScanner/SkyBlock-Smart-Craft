@@ -1,0 +1,6 @@
+{
+  "version": "3",
+  "remote": {
+    "https://dnascanner.de/functions/deno/tableBuilder.ts": "245233de9a1dd3dca0a07c2b7ed534d3e700a52c1ee7ecaf7945942cf52f6c80"
+  }
+}
